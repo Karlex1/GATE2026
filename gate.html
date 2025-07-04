@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GATE CSE 2026 - Interactive Resource Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- 
+    Chosen Palette: Scholarly Calm. A professional and clean theme using a base of neutral grays (slate, zinc) for a calm, academic feel. A strong, accessible blue is used as the primary accent for interactive elements like buttons, links, and chart data to guide the user's attention and indicate functionality.
+    Application Structure Plan: The SPA is designed as an interactive dashboard and resource explorer. This structure was chosen over a linear document format to empower users to quickly find relevant information. The core components are: 1) A header with at-a-glance exam details. 2) An interactive resource visualization chart to give a high-level overview. 3) A powerful filtering system (by subject and resource type) that allows users to instantly narrow down the vast list of resources. 4) A grid of resource 'cards' that dynamically updates based on filters, presenting information in a digestible, actionable format. This task-oriented design directly serves the primary user goal: finding specific study materials efficiently.
+    Visualization & Content Choices: 
+    - Report Info: Distribution of free resources across subjects. Goal: Compare. Viz: Bar Chart (Chart.js/Canvas). Interaction: Tooltips on hover. Justification: Provides a quick visual summary of which subjects have the most available materials, helping users prioritize.
+    - Report Info: List of all study materials. Goal: Organize & Explore. Viz: Interactive Filterable Grid of Cards (HTML/CSS/JS). Interaction: Users click filter buttons (by Subject/Type) to instantly update the grid. Cards have a clear "Access" button. Justification: This is the core of the app, transforming the static list into a powerful, user-driven tool. It's far more usable than a static table or list.
+    - Report Info: GATE Exam Details. Goal: Inform. Viz: Stat Cards (HTML/CSS). Interaction: None. Justification: Presents key, high-level information in a prominent, easily scannable format at the top of the page.
+    - Report Info: Syllabus. Goal: Organize. Viz: Collapsible Accordion (HTML/CSS/JS). Interaction: Click to expand/collapse. Justification: Keeps detailed syllabus information available for reference without cluttering the main interface.
+    CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            /* slate-100 */
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 320px;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+
+        .filter-btn.active {
+            background-color: #2563eb;
+            /* blue-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .filter-btn {
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">GATE CSE 2026</h1>
+            <p class="mt-2 text-lg text-slate-600">Your Interactive Guide to Free Study Resources</p>
+        </header>
+
+        <!-- Key Info Section -->
+        <section id="key-info" class="mb-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-500 text-sm uppercase tracking-wider">Organizing Institute</h3>
+                    <p class="text-2xl font-bold text-blue-600 mt-2">IIT Guwahati</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-500 text-sm uppercase tracking-wider">Application Start
+                        (Tentative)</h3>
+                    <p class="text-2xl font-bold text-blue-600 mt-2">Late August 2025</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="font-semibold text-slate-500 text-sm uppercase tracking-wider">Exam Dates (Tentative)
+                    </h3>
+                    <p class="text-2xl font-bold text-blue-600 mt-2">February 2026</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Resource Explorer -->
+        <main class="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200">
+
+            <!-- Visualization Section -->
+            <section id="visualization" class="mb-10">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">Resource Distribution</h2>
+                <p class="text-slate-600 mb-6">This chart shows the number of free study resources available for each
+                    core computer science subject. Use the filters below to explore them.</p>
+                <div class="chart-container">
+                    <canvas id="resourcesChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Filtering Section -->
+            <section id="filters" class="mb-8">
+                <h2 class="text-2xl font-bold text-slate-900 mb-4">Find Your Resources</h2>
+
+                <div class="mb-6">
+                    <p class="font-semibold text-slate-700 mb-3">Filter by Subject:</p>
+                    <div id="subject-filters" class="flex flex-wrap gap-2">
+                        <!-- Subject filter buttons will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <div>
+                    <p class="font-semibold text-slate-700 mb-3">Filter by Resource Type:</p>
+                    <div id="type-filters" class="flex flex-wrap gap-2">
+                        <!-- Type filter buttons will be dynamically inserted here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Display -->
+            <section id="results">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="text-xl font-bold text-slate-800">Available Materials</h3>
+                    <p id="results-count" class="text-slate-500 font-medium"></p>
+                </div>
+                <div id="resources-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Resource cards will be dynamically inserted here -->
+                </div>
+                <p id="no-results" class="text-center py-12 text-slate-500 hidden">No resources match your current
+                    filter selection.</p>
+            </section>
+        </main>
+
+        <!-- Syllabus Section -->
+        <section id="syllabus" class="mt-12 bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200">
+            <div id="syllabus-accordion-header" class="flex justify-between items-center cursor-pointer">
+                <h2 class="text-2xl font-bold text-slate-900">GATE CSE Syllabus Overview</h2>
+                <span id="syllabus-icon"
+                    class="text-2xl font-bold text-blue-600 transform transition-transform duration-300">-</span>
+            </div>
+            <div id="syllabus-accordion-content" class="mt-6 transition-all duration-500 ease-in-out">
+                <p class="text-slate-600 mb-6">The GATE CSE syllabus is broadly divided into three main sections. A
+                    strong understanding of all areas is crucial for success.</p>
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-bold text-lg text-slate-800">1. General Aptitude</h4>
+                        <p class="text-slate-600 ml-4">Verbal, Quantitative, Analytical, and Spatial Aptitude.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-slate-800">2. Engineering Mathematics</h4>
+                        <p class="text-slate-600 ml-4">Discrete Mathematics, Linear Algebra, Calculus, and Probability &
+                            Statistics.</p>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-slate-800">3. Core Computer Science Subjects</h4>
+                        <ul id="core-subjects-list"
+                            class="list-disc list-inside ml-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 text-slate-600">
+                            <!-- Core subjects list will be dynamically inserted here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const resources = [
+                { subject: 'Engineering Mathematics', type: 'Notes', title: 'Engg. Mathematics Notes', source: 'GeeksforGeeks', url: 'https://www.geeksforgeeks.org/gate/gate-cs-notes-gq/' },
+                { subject: 'Engineering Mathematics', type: 'Notes', title: 'Full Course Notes', source: 'SelfStudys.com', url: 'https://www.selfstudys.com/page/gate-computer-science-engineering-notes' },
+                { subject: 'Discrete Mathematics', type: 'Book', title: 'DiscMaths4CompSc Textbook', source: 'jheffero.w3.uvm.edu', url: 'https://jheffero.w3.uvm.edu/computation/book.pdf' },
+                { subject: 'Discrete Mathematics', type: 'Notes', title: 'Handwritten Notes PDF', source: 'SelfStudys.com', url: 'https://www.selfstudys.com/gate/computer-science-engineering/online/exam/discrete-mathematics-book-ii' },
+                { subject: 'Discrete Mathematics', type: 'Notes', title: 'Logic in CS Lecture Notes', source: 'IIT Delhi', url: 'https://kumarmadhukar.github.io/courses/logic-diwali23/index.html' },
+                { subject: 'Digital Logic', type: 'Notes', title: 'Digital Logic Notes', source: 'GeeksforGeeks', url: 'https://www.geeksforGeeks.org/gate/gate-cs-notes-gq/' },
+                { subject: 'Digital Logic', type: 'Course Material', title: 'Computation Structures Course', source: 'MIT OpenCourseWare', url: 'https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-004-computation-structures-spring-2017/' },
+                { subject: 'COA', type: 'Book', title: 'Computer Org. & Arch. Book', source: 'junyours.files.wordpress.com', url: 'https://junyours.files.wordpress.com/2012/07/computer-organization-and-architecture.pdf' },
+                { subject: 'COA', type: 'Notes', title: 'COA Notes', source: 'GeeksforGeeks', url: 'https://www.geeksforGeeks.org/gate/gate-cs-notes-gq/' },
+                { subject: 'COA', type: 'Course Material', title: 'Computation Structures (COA)', source: 'MIT OpenCourseWare', url: 'https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-004-computation-structures-spring-2017/' },
+                { subject: 'Programming & Data Structures', type: 'Notes', title: 'Prog. & DS PDF Notes', source: 'SelfStudys.com', url: 'https://www.selfstudys.com/gate/computer-science-engineering/online/exam/3-programming-data-structures' },
+                { subject: 'Programming & Data Structures', type: 'PYQs', title: 'C Programming PYQs', source: 'GeeksforGeeks', url: 'https://www.geeksforGeeks.org/gate/original-gate-previous-year-question-papers-cse-and-it-gq/' },
+                { subject: 'Programming & Data Structures', type: 'Book', title: 'Data Structures eBook', source: 'Studynama.com', url: 'https://www.studynama.com/community/threads/data-structures-ds-pdf-notes-book-ebook-for-btech-cse-it-engineering-free-download.1229/' },
+                { subject: 'Programming & Data Structures', type: 'Video Course', title: 'Implementation of Data Structures', source: 'IITBombayX (edX)', url: 'https://www.edx.org/course/implementation-of-data-structures' },
+                { subject: 'Algorithms', type: 'Notes', title: 'Algorithms PDF Notes', source: 'SelfStudys.com', url: 'https://www.selfstudys.com/gate/computer-science-engineering/online/exam/4-algorithms' },
+                { subject: 'Algorithms', type: 'Video Course', title: 'Introduction to Algorithms', source: 'MIT OpenCourseWare', url: 'https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-006-introduction-to-algorithms-fall-2011/' },
+                { subject: 'Algorithms', type: 'PYQs', title: 'Algorithms PYQs', source: 'GeeksforGeeks', url: 'https://www.geeksforGeeks.org/gate/original-gate-previous-year-question-papers-cse-and-it-gq/' },
+                { subject: 'Theory of Computation', type: 'Book', title: 'Theory of Computation Textbook', source: 'jheffero.w3.uvm.edu', url: 'https://jheffero.w3.uvm.edu/computation/book.pdf' },
+                { subject: 'Theory of Computation', type: 'Notes', title: 'ToC GATE Bits PDF', source: 'Testbook', url: 'https://blogmedia.testbook.com/blog/wp-content/uploads/2016/10/Theory-of-Computation-GATE-Bits-in-PDF-2.pdf' },
+                { subject: 'Theory of Computation', type: 'Video Course', title: 'Automata, Computability, Complexity', source: 'MIT OpenCourseWare', url: 'https://ocw.mit.edu/courses/6-045j-automata-computability-and-complexity-spring-2011/' },
+                { subject: 'Compiler Design', type: 'Book', title: 'Basics of Compiler Design Book', source: 'FreeComputerBooks.com', url: 'https://freecomputerbooks.com/Basics-of-Compiler-Design.html' },
+                { subject: 'Compiler Design', type: 'Book', title: 'Intro to Compilers Book', source: 'Douglas Thain', url: 'https://www3.nd.edu/~dthain/compilerbook/' },
+                { subject: 'Compiler Design', type: 'Video Course', title: 'Compiler Design Course', source: 'NPTEL/SWAYAM', url: 'https://onlinecourses.nptel.ac.in/noc23_cs103/preview' },
+                { subject: 'Operating Systems', type: 'Book', title: 'Operating Systems: Three Easy Pieces', source: 'ostep.org', url: 'http://www.ostep.org' },
+                { subject: 'Operating Systems', type: 'Notes', title: 'Operating System Notes', source: 'GeeksforGeeks', url: 'https://www.geeksforGeeks.org/gate/gate-cs-notes-gq/' },
+                { subject: 'Operating Systems', type: 'PYQs', title: 'Operating Systems PYQs', source: 'GeeksforGeeks', url: 'https://www.geeksforGeeks.org/gate/original-gate-previous-year-question-papers-cse-and-it-gq/' },
+                { subject: 'Databases', type: 'Video Course', title: 'Database Systems Course', source: 'MIT OpenCourseWare', url: 'https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-830-database-systems-fall-2010/' },
+                { subject: 'Databases', type: 'Book', title: 'Database Design OER Textbook', source: 'uni.edu', url: 'https://guides.lib.uni.edu/oer/computerscience' },
+                { subject: 'Databases', type: 'Notes', title: 'DBMS Notes', source: 'GeeksforGeeks', url: 'https://www.geeksforGeeks.org/gate/gate-cs-notes-gq/' },
+                { subject: 'Computer Networks', type: 'Book', title: 'Computer Networking: P, P, P', source: 'archive.org', url: 'https://archive.org/details/ComputerNetworkingP3' },
+                { subject: 'Computer Networks', type: 'Book', title: 'Computer Networking: A Top Down Approach', source: 'networking.harshkapadia.me', url: 'https://networking.harshkapadia.me/files/books/computer-networking-a-top-down-approach-8th-edition.pdf' },
+                { subject: 'Computer Networks', type: 'Video Course', title: 'Computer Networks Course', source: 'MIT OpenCourseWare', url: 'https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-829-computer-networks-fall-2002/' },
+                { subject: 'General', type: 'PYQs', title: 'Official PYQs (2007-2023)', source: 'GATE Website', url: 'https://gate2024.iisc.ac.in/previous-question-papers/' },
+                { subject: 'General', type: 'PYQs', title: 'Topic-wise PYQs', source: 'PracticePaper.in', url: 'https://practicepaper.in/gate-cse/topic-wise-practice-of-gate-cse-previous-year-papers' },
+                { subject: 'General', type: 'PYQs', title: 'GATE Overflow PYQs', source: 'GATE Overflow', url: 'https://gateoverflow.in/exams' },
+                { subject: 'General', type: 'Video Course', title: 'NPTEL GATE Portal', source: 'NPTEL', url: 'https://gate.nptel.ac.in/' },
+                // New Mock Test Resources
+                { subject: 'General', type: 'Mock Test', title: 'Free GATE CSE Mock Tests', source: 'IMS India', url: 'https://www.imsindia.com/blog/gate/gate-mock-tests/' },
+                { subject: 'General', type: 'Mock Test', title: 'GATE CSE Online Mock Test', source: 'SelfStudys', url: 'https://www.selfstudys.com/gate/mock-test/online/exam' },
+                { subject: 'General', type: 'Mock Test', title: 'Free PW Test Series', source: 'Physics Wallah', url: 'https://www.pw.live/test-series' },
+                { subject: 'General', type: 'Mock Test', title: 'GATE CSE Mock Test Series', source: 'PracticePaper.in', url: 'https://practicepaper.in/gate-cse/gate-cse-mock-test-series' },
+                { subject: 'General', type: 'Mock Test', title: 'GO Classes GATE CS Mock Test', source: 'GO Classes', url: 'https://www.goclasses.in/courses/GATE-CS-Test-Series-67ee6ae3aa39635ba12c054e' },
+                { subject: 'General', type: 'Mock Test', title: 'GATE at Zeal Free Test', source: 'GATE at Zeal', url: 'https://gateatzeal.com/online_test_series/' },
+                { subject: 'General', type: 'Mock Test', title: 'Official GATE Mock Test (2025)', source: 'IIT Roorkee', url: 'https://gate2025.iitr.ac.in/mock-test-links.html' }
+            ];
+
+            const subjects = ['General', 'Engineering Mathematics', 'Discrete Mathematics', 'Digital Logic', 'COA', 'Programming & Data Structures', 'Algorithms', 'Theory of Computation', 'Compiler Design', 'Operating Systems', 'Databases', 'Computer Networks'];
+            const types = ['Book', 'Notes', 'Video Course', 'Course Material', 'PYQs', 'Mock Test']; // 'Mock Test' added here
+
+            const subjectFiltersContainer = document.getElementById('subject-filters');
+            const typeFiltersContainer = document.getElementById('type-filters');
+            const resourcesGrid = document.getElementById('resources-grid');
+            const resultsCount = document.getElementById('results-count');
+            const noResults = document.getElementById('no-results');
+            const coreSubjectsList = document.getElementById('core-subjects-list');
+
+            let activeSubject = 'all';
+            let activeType = 'all';
+
+            function createFilterButtons(container, items, category) {
+                const allButton = document.createElement('button');
+                allButton.textContent = 'All';
+                allButton.className = 'filter-btn active px-4 py-2 text-sm font-medium text-slate-700 bg-slate-200 rounded-full';
+                allButton.dataset.filter = 'all';
+                container.appendChild(allButton);
+
+                items.forEach(item => {
+                    const button = document.createElement('button');
+                    button.textContent = item;
+                    button.className = 'filter-btn px-4 py-2 text-sm font-medium text-slate-700 bg-slate-200 rounded-full';
+                    button.dataset.filter = item;
+                    container.appendChild(button);
+                });
+
+                container.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        if (category === 'subject') {
+                            activeSubject = e.target.dataset.filter;
+                        } else {
+                            activeType = e.target.dataset.filter;
+                        }
+
+                        Array.from(container.children).forEach(btn => btn.classList.remove('active'));
+                        e.target.classList.add('active');
+                        renderResources();
+                    }
+                });
+            }
+
+            function renderResources() {
+                resourcesGrid.innerHTML = '';
+                const filteredResources = resources.filter(resource => {
+                    const subjectMatch = activeSubject === 'all' || resource.subject === activeSubject;
+                    const typeMatch = activeType === 'all' || resource.type === activeType;
+                    return subjectMatch && typeMatch;
+                });
+
+                resultsCount.textContent = `${filteredResources.length} Found`;
+
+                if (filteredResources.length === 0) {
+                    noResults.classList.remove('hidden');
+                } else {
+                    noResults.classList.add('hidden');
+                }
+
+                filteredResources.forEach(resource => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-slate-50 border border-slate-200 rounded-xl p-5 flex flex-col justify-between hover:shadow-md transition-shadow duration-300';
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-100 px-2 py-1 rounded-full">${resource.type}</span>
+                                <span class="text-xs font-medium text-slate-500">${resource.subject}</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-800">${resource.title}</h4>
+                            <p class="text-sm text-slate-500 mt-1">Source: ${resource.source}</p>
+                        </div>
+                        <a href="${resource.url}" target="_blank" rel="noopener noreferrer" class="mt-4 block w-full text-center bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                            Access Resource
+                        </a>
+                    `;
+                    resourcesGrid.appendChild(card);
+                });
+            }
+
+            function populateCoreSubjects() {
+                const coreSubjects = subjects.filter(s => s !== 'General' && s !== 'Engineering Mathematics' && s !== 'Discrete Mathematics');
+                coreSubjects.forEach(subject => {
+                    const li = document.createElement('li');
+                    li.textContent = subject;
+                    coreSubjectsList.appendChild(li);
+                });
+            }
+
+            function initChart() {
+                const ctx = document.getElementById('resourcesChart').getContext('2d');
+                const subjectCounts = {};
+                subjects.forEach(subject => {
+                    if (subject !== 'General') {
+                        subjectCounts[subject] = 0;
+                    }
+                });
+                resources.forEach(resource => {
+                    if (resource.subject !== 'General' && subjectCounts.hasOwnProperty(resource.subject)) {
+                        subjectCounts[resource.subject]++;
+                    }
+                });
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(subjectCounts),
+                        datasets: [{
+                            label: 'Number of Free Resources',
+                            data: Object.values(subjectCounts),
+                            backgroundColor: 'rgba(37, 99, 235, 0.7)',
+                            borderColor: 'rgba(37, 99, 235, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(203, 213, 225, 0.5)' // slate-300 with opacity
+                                },
+                                ticks: {
+                                    color: '#475569', // slate-600
+                                    stepSize: 1
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#475569' // slate-600
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: '#1e293b', // slate-800
+                                titleFont: { size: 14, weight: 'bold' },
+                                bodyFont: { size: 12 },
+                                padding: 12,
+                                cornerRadius: 8
+                            }
+                        }
+                    }
+                });
+            }
+
+            function initSyllabusAccordion() {
+                const header = document.getElementById('syllabus-accordion-header');
+                const content = document.getElementById('syllabus-accordion-content');
+                const icon = document.getElementById('syllabus-icon');
+
+                header.addEventListener('click', () => {
+                    const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px';
+                    if (isExpanded) {
+                        content.style.maxHeight = '0px';
+                        content.style.marginTop = '0';
+                        icon.style.transform = 'rotate(45deg)';
+
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        content.style.marginTop = '1.5rem';
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                });
+
+                // Initially collapse
+                content.style.maxHeight = content.scrollHeight + "px";
+                content.style.marginTop = '1.5rem';
+                icon.style.transform = 'rotate(0deg)';
+                // To start collapsed, uncomment below and comment above
+                // content.style.maxHeight = '0px';
+                // content.style.marginTop = '0';
+                // icon.style.transform = 'rotate(45deg)';
+            }
+
+            // Initial setup
+            createFilterButtons(subjectFiltersContainer, subjects, 'subject');
+            createFilterButtons(typeFiltersContainer, types, 'type');
+            populateCoreSubjects();
+            renderResources();
+            initChart();
+            initSyllabusAccordion();
+        });
+    </script>
+</body>
+
+</html>
